@@ -9,41 +9,50 @@
 
 struct msgLogin {
     long mtype;
-    char key[6];
-    int notification_types[12];
+    int prov_id;
+    int notification_type;
 };
 
-int DISTRO_KEY = 0x123;
+struct msgNotification {
+    long mtype;
+    int key;
+    char content[200];
+};
+
+const DISTRO_KEY = 0x123;
 
 int main(int argc, char *argv[])
 {
-    if (argc != 2)
+    if (argc != 3)
     {
-        printf("Podaj klucz dla dystrybutora\n");
+        printf("Podaj swój identyfikator oraz typ powiadomienia\n");
         return 1;
     }
+    int provider_key = atoi(argv[1]);
+    int notification_type = atoi(argv[2]);
 
     struct msgLogin sign;
-    printf("Enter up to 4-character key:\n");
-    if (fgets(sign.key, sizeof(sign.key), stdin)) {
-        size_t len = strlen(sign.key);
-        if (len > 0 && sign.key[len - 1] == '\n') {
-            sign.key[len - 1] = '\0';
-        }
-    }
+    sign.mtype = 100; // Logowanie ma typ 100
+    sign.prov_id = provider_key;
+    sign.notification_type = notification_type;
 
-    printf("Enter up to 10-character notification types:\n");
-    if (fgets(sign.notification_types, sizeof(sign.notification_types), stdin)) {
-        size_t len = strlen(sign.notification_types);
-        if (len > 0 && sign.notification_types[len - 1] == '\n') {
-            sign.notification_types[len - 1] = '\0';
-        }
-    }
     int id = msgget(DISTRO_KEY, 0666 | IPC_CREAT);
     
     //login
-    msgsend(id,&sign,sizeof(sign) - sizeof(long),IPC_NOWAIT);
+    msgsend(id,&sign,sizeof(struct msgLogin) - sizeof(long),0);
 
-
-
+    struct msgNotification msg;
+    msg.mtype = notification_type;
+    msg.key = provider_key;
+    while (1)
+    {
+        printf("Podaj treść powiadomienia\n");
+        if (fgets(msg.content, sizeof(msg.content), stdin) == NULL) {
+            printf("Blad odczytu. Sprobuj ponownie.\n");
+            continue;
+        }
+        msgsnd(id,&msg, sizeof(struct msgNotification) - sizeof(long),0); // TODO obsługa błędów
+        printf("Powiadomienie wysłane\n"); 
+    }
+    return 0;
 }
