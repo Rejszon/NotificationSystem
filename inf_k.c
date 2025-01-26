@@ -25,14 +25,14 @@ struct notification_msg // Powiadomienie
 struct notification_types_msg // Typy do wyboru
 {
     long mtype;
-    char types[25];
+    char types[100];
 };
 
-void requestNotifications(mid)
+void requestNotifications(pid,mid)
 {
     struct notification_types_msg req;
     req.mtype = 11;
-    msgsnd(mid, &req, sizeof(struct notification_types_msg) - sizeof(long), 0); //request typów
+    msgsnd(pid, &req, sizeof(struct notification_types_msg) - sizeof(long), 0); //request typów
     struct notification_types_msg res;
     msgrcv(mid,&res,sizeof(struct notification_types_msg) - sizeof(long),11,0);
     printf("Typy : \n%s",res.types);
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
         switch (choice) {
             case 1:
                 printf("Dodawanie nowego typu komunikatu...\n");
-                requestNotifications(mid);
+                requestNotifications(pid, mid);
 
                 printf("Podaj numer komunikatu który chcesz dodać\n");
                 if (fgets(input, sizeof(input), stdin) == NULL) {
@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
                 post.usr_id = user_id;
                 int notification_type = atoi(input);
                 post.notification_type = notification_type;
-                msgsnd(mid, &post, sizeof(struct usr_msg) - sizeof(long), 0); // dodanie typu powiadomienia
+                msgsnd(pid, &post, sizeof(struct usr_msg) - sizeof(long), 0); // dodanie typu powiadomienia
                 subscribed[notification_type] = 1;
                 break;
 
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
                 post.mtype = 13; //usunięcie typu
                 int notification_type = atoi(input);
                 post.notification_type = notification_type;
-                msgsnd(mid, &post, sizeof(struct usr_msg) - sizeof(long), 0); // usunięcie typu powiadomienia
+                msgsnd(pid, &post, sizeof(struct usr_msg) - sizeof(long), 0); // usunięcie typu powiadomienia
                 subscribed[notification_type] = 0;
                 break;
             default:

@@ -23,6 +23,11 @@ struct notification{
     char content[200];
 };
 
+struct notification_types_msg // Typy do wyboru
+{
+    long mtype;
+    char types[100];
+};
 
 struct provider{
     int id;
@@ -52,6 +57,15 @@ bool isTypeFree(type)
     }
     return true;
 }
+int getClientById(id)
+{
+    for (int i = 0; i < 10; i++)
+    {
+        providers[i].id == id;
+        return id;
+    }
+    return -1;
+}
 
 int main()
 {
@@ -61,6 +75,9 @@ int main()
         handleNotifications();
     }
     struct sign_msg sign;
+
+    struct notification_types_msg types_msg;
+    types_msg.mtype = 11;
 
     while (1)
     {
@@ -120,21 +137,26 @@ int main()
                     clients[i].queue = msgget(sign.id, 0666 | IPC_CREAT);
                 }
                 
-                
             }
             
             break;
 
         case 11:
-            
+            strcpy(types_msg.types, "");
+            for (int i = 0; i < 10; i++)
+            {
+                strcat(types_msg.types,providers[i].type);
+                strcat(types_msg.types,"\n");
+            }
+            msgsnd(clients[getClientById(sign.id)].queue,&types_msg,sizeof(struct notification_types_msg) - sizeof(long),IPC_NOWAIT);
             break;
 
         case 12:
-            
+            clients[getClientById(sign.id)].notification_types[sign.notification_type] = 1;
             break;
 
         case 13:
-            
+            clients[getClientById(sign.id)].notification_types[sign.notification_type] = 0;
             break;
 
         default:
@@ -149,5 +171,5 @@ int main()
 
 void handleNotifications()
 {
-    
+
 }
