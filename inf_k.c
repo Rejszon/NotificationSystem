@@ -6,8 +6,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 
-const DISTRO_KEY = 0x123;
+
+const int DISTRO_KEY = 0x123;
 
 struct usr_msg
 {
@@ -28,7 +30,7 @@ struct notification_types_msg // Typy do wyboru
     char types[100];
 };
 
-void requestNotifications(pid,mid)
+void requestNotifications(int pid,int mid)
 {
     struct notification_types_msg req;
     req.mtype = 11;
@@ -62,6 +64,9 @@ int main(int argc, char *argv[])
     int mid = msgget(user_id, 0666 | IPC_CREAT); // stworzenie kolejki na komunikaty
 
     char input[5];
+    struct notification_msg msg;
+    struct usr_msg post;
+    int notification_type;
     while(1)
     {
         printf("Wybierz opcje:\n");
@@ -84,7 +89,6 @@ int main(int argc, char *argv[])
                 printf("Blad odczytu. Sprobuj ponownie.\n");
                 continue;
                 }
-                struct usr_msg post;
                 post.mtype = 12; //dodanie typu
                 post.usr_id = user_id;
                 int notification_type = atoi(input);
@@ -95,7 +99,6 @@ int main(int argc, char *argv[])
 
             case 2:
                 printf("Odbieranie komunikatu...\n");
-                struct notification_msg msg;
                 if (msgrcv(mid, &msg, sizeof(struct notification_msg) - sizeof(long), -10, IPC_NOWAIT) == -1) // -9 bo chcemy wszystkie powiadomienia od 1-9 to są nasze wiadomości a filtracja typów jest po stornie dystrybutora
                 {
                     printf("Brak nowych komunikatow.\n");
@@ -113,9 +116,8 @@ int main(int argc, char *argv[])
                 printf("Blad odczytu. Sprobuj ponownie.\n");
                 continue;
                 }
-                struct usr_msg post;
                 post.mtype = 13; //usunięcie typu
-                int notification_type = atoi(input);
+                notification_type = atoi(input);
                 post.notification_type = notification_type;
                 msgsnd(pid, &post, sizeof(struct usr_msg) - sizeof(long), 0); // usunięcie typu powiadomienia
                 subscribed[notification_type] = 0;
