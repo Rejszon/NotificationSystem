@@ -9,6 +9,7 @@
 #include <stdbool.h>
 
 const DISTRO_KEY = 0x123;
+const NOTIFICATION_KEY= 0x420;
 
 /// IPC msgs
 
@@ -19,7 +20,7 @@ struct sign_msg{
 };
 struct notification{
     long mtype;
-    int key;
+    int provider_key;
     char content[200];
 };
 
@@ -58,6 +59,15 @@ bool isTypeFree(type)
     return true;
 }
 int getClientById(id)
+{
+    for (int i = 0; i < 10; i++)
+    {
+        clients[i].id == id;
+        return id;
+    }
+    return -1;
+}
+int getProviderByKey(id)
 {
     for (int i = 0; i < 10; i++)
     {
@@ -163,13 +173,18 @@ int main()
             break;
         }
     }
-    
-
 
 }
 
 
 void handleNotifications()
 {
-
+    int nid = msgget(NOTIFICATION_KEY, 0666 | IPC_CREAT);
+    struct notification notification;
+    msgrcv(nid,&notification,sizeof(struct notification) - sizeof(long),0,0);
+    if ()
+    {
+        /* code */
+    }
+    
 }
