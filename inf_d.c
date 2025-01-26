@@ -9,6 +9,8 @@
 #include <stdbool.h>
 
 const DISTRO_KEY = 0x123;
+const SHM_SIZE = 10000;
+
 
 /// IPC msgs
 
@@ -40,6 +42,11 @@ struct client{
     int queue;
 };
 
+struct shm_data {
+    struct provider providers[10];
+    struct client clients[10];
+};
+
 
 void handleNotifications();
 
@@ -69,15 +76,20 @@ int getClientById(id)
 
 int main()
 {
+
+    int shm_id = shmget(DISTRO_KEY, SHM_SIZE, 0666 | IPC_CREAT);
+
+    struct shared_data *data_ptr = (struct shared_data *)shmat(shm_id, NULL, 0);
+
+    struct shared_data data = *data_ptr;
+
     int sid = msgget(DISTRO_KEY, 0666 | IPC_CREAT);
+
     if(fork() == 0)
     {
         handleNotifications();
     }
     struct sign_msg sign;
-
-    struct notification_types_msg types_msg;
-    types_msg.mtype = 11;
 
     while (1)
     {
@@ -87,15 +99,15 @@ int main()
         case 100:
             for (int i = 0; i < 10; i++)
             {
-                if (providers[i].id == sign.id)
+                if (data.providers[i].id == sign.id)
                 {
-                    if (providers[i].type == sign.notification_type)
+                    if (data.providers[i].type == sign.notification_type)
                     {
                         continue;
                     }
-                    if (isTypeFree(sign.notification_type)) // Jeżeli jeden proces jest już zalogowany to nie obsłużymy tylko dostanie 2 procesy ale no
+                    if (isTypeFree(data.provider, sign.notification_type)) // Jeżeli jeden proces jest już zalogowany to nie obsłużymy tylko dostanie 2 procesy ale no
                     {
-                        providers[i].type = sign.notification_type;
+                        data.providers[i].type = sign.notification_type;
                         continue;
                     }
                     else
@@ -105,12 +117,12 @@ int main()
                     }
                     
                 }
-                if (providers[i].id == NULL)
+                if (data.providers[i].id == NULL)
                 {
-                    providers[i].id = sign.id;
-                    if (isTypeFree(sign.notification_type))
+                    data.providers[i].id = sign.id;
+                    if (isTypeFree(data.providers,sign.notification_type))
                     {
-                        providers[i].type = sign.notification_type;
+                        data.providers[i].type = sign.notification_type;
                         continue;
                     }
                     else
@@ -127,14 +139,14 @@ int main()
         case 101:
             for (int i = 0; i < 10; i++)
             {
-                if (clients[i].id == sign.id)
+                if (data.clients[i].id == sign.id)
                 {
                     continue;
                 }
-                if (clients[i].id == NULL)
+                if (data.clients[i].id == NULL)
                 {
-                    clients[i].id = sign.id;
-                    clients[i].queue = msgget(sign.id, 0666 | IPC_CREAT);
+                    data.clients[i].id = sign.id;
+                    data.clients[i].queue = msgget(sign.id, 0666 | IPC_CREAT);
                 }
                 
             }
@@ -145,18 +157,22 @@ int main()
             strcpy(types_msg.types, "");
             for (int i = 0; i < 10; i++)
             {
-                strcat(types_msg.types,providers[i].type);
-                strcat(types_msg.types,"\n");
+                if (data.providers[i].type != 0) { // Odczyt z pamięci współdzielonej
+                char buffer[10];
+                sprintf(buffer, "%d", data.providers[i].type);
+                strcat(types_msg.types, buffer);
+                strcat(types_msg.types, "\n");
+        }
             }
-            msgsnd(clients[getClientById(sign.id)].queue,&types_msg,sizeof(struct notification_types_msg) - sizeof(long),IPC_NOWAIT);
+            msgsnd(data.clients[getClientById(sign.id)].queue,&types_msg,sizeof(struct notification_types_msg) - sizeof(long),IPC_NOWAIT);
             break;
 
         case 12:
-            clients[getClientById(sign.id)].notification_types[sign.notification_type] = 1;
+            data.clients[getClientById(sign.id)].notification_types[sign.notification_type] = 1;
             break;
 
         case 13:
-            clients[getClientById(sign.id)].notification_types[sign.notification_type] = 0;
+            data.clients[getClientById(sign.id)].notification_types[sign.notification_type] = 0;
             break;
 
         default:
