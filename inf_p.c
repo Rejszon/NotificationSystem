@@ -6,6 +6,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
+
 
 struct msgLogin {
     long mtype;
@@ -19,8 +21,8 @@ struct msgNotification {
     char content[200];
 };
 
-const DISTRO_KEY = 0x123;
-const NOTIFICATION_KEY= 0x420;
+const int DISTRO_KEY = 0x123;
+const int NOTIFICATION_KEY= 0x420;
 
 int main(int argc, char *argv[])
 {
@@ -40,12 +42,12 @@ int main(int argc, char *argv[])
     int id = msgget(DISTRO_KEY, 0666 | IPC_CREAT);
     
     //login
-    msgsend(id,&sign,sizeof(struct msgLogin) - sizeof(long),0);
+    msgsnd(id,&sign,sizeof(struct msgLogin) - sizeof(long),0);
 
     struct msgNotification msg;
     msg.mtype = notification_type;
     msg.key = provider_key;
-    int nid = msgget(DISTRO_KEY, 0666 | IPC_CREAT);
+    int nid = msgget(NOTIFICATION_KEY, 0666 | IPC_CREAT);
     while (1)
     {
         printf("Podaj treść powiadomienia\n");
