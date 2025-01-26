@@ -9,8 +9,13 @@
 #include <stdbool.h>
 
 const DISTRO_KEY = 0x123;
-const NOTIFICATION_KEY= 0x420;
 const SHM_SIZE = 10000;
+const MAX_CLIENTS = 10;
+const MAX_PROVIDERS = 10;
+const MAX_NOTIFICATIONS = 10;
+
+
+
 /// IPC msgs
 
 struct sign_msg{
@@ -20,7 +25,7 @@ struct sign_msg{
 };
 struct notification{
     long mtype;
-    int provider_key;
+    int key;
     char content[200];
 };
 
@@ -37,24 +42,24 @@ struct provider{
 
 struct client{
     int id;
-    int notification_types[10];
+    int notification_types[MAX_NOTIFICATIONS];
     int queue;
 };
 
-struct shared_data {
-    struct provider providers[10];
-    struct client clients[10];
+struct shm_data {
+    struct provider providers[MAX_PROVIDERS];
+    struct client clients[MAX_CLIENTS];
 };
 
 
 void handleNotifications();
 
-struct provider providers[10];
-struct client clients[10];
+struct provider *providers[MAX_PROVIDERS];
+struct client *clients[MAX_CLIENTS];
 
 bool isTypeFree(type)
 {
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < MAX_PROVIDERS; i++)
     {
         if (providers[i].type == type)
         {
@@ -65,16 +70,7 @@ bool isTypeFree(type)
 }
 int getClientById(id)
 {
-    for (int i = 0; i < 10; i++)
-    {
-        clients[i].id == id;
-        return id;
-    }
-    return -1;
-}
-int getProviderByKey(id)
-{
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < MAX_CLIENTS; i++)
     {
         providers[i].id == id;
         return id;
@@ -95,24 +91,9 @@ int main()
 
     if(fork() == 0)
     {
-        int nid = msgget(NOTIFICATION_KEY, 0666 | IPC_CREAT);
-        struct notification notification;
-        msgrcv(nid,&notification,sizeof(struct notification) - sizeof(long),0,0);
-        if (data.providers[getProviderByKey(notification.provider_key)].type == notification.mtype)
-        {
-           for (int i = 0; i < 10; i++)
-           {
-                if (data.clients[i].notification_types[notification.mtype] == 1)
-                {
-                    msgsnd(data.clients[i].queue,&notification,sizeof(notification) - sizeof(long),0);
-                }
-           }
-        }
+        handleNotifications();
     }
     struct sign_msg sign;
-    
-    struct notification_types_msg types_msg;
-    types_msg.mtype = 11;
 
     while (1)
     {
@@ -120,7 +101,7 @@ int main()
         switch (sign.mtype)
         {
         case 100:
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < MAX_PROVIDERS; i++)
             {
                 if (data.providers[i].id == sign.id)
                 {
@@ -128,7 +109,7 @@ int main()
                     {
                         continue;
                     }
-                    if (isTypeFree(data.providers, sign.notification_type)) // Jeżeli jeden proces jest już zalogowany to nie obsłużymy tylko dostanie 2 procesy ale no
+                    if (isTypeFree(data.provider, sign.notification_type)) // Jeżeli jeden proces jest już zalogowany to nie obsłużymy tylko dostanie 2 procesy ale no
                     {
                         data.providers[i].type = sign.notification_type;
                         continue;
@@ -160,7 +141,7 @@ int main()
             break;
 
         case 101:
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < MAX_CLIENTS; i++)
             {
                 if (data.clients[i].id == sign.id)
                 {
@@ -180,11 +161,12 @@ int main()
             strcpy(types_msg.types, "");
             for (int i = 0; i < 10; i++)
             {
-                if (data.providers[i].type != 0)
-                {
-                    strcat(types_msg.types,data.providers[i].type);
-                    strcat(types_msg.types,"\n");
-                }
+                if (data.providers[i].type != 0) { // Odczyt z pamięci współdzielonej
+                char buffer[10];
+                sprintf(buffer, "%d", data.providers[i].type);
+                strcat(types_msg.types, buffer);
+                strcat(types_msg.types, "\n");
+        }
             }
             msgsnd(data.clients[getClientById(sign.id)].queue,&types_msg,sizeof(struct notification_types_msg) - sizeof(long),IPC_NOWAIT);
             break;
@@ -201,5 +183,13 @@ int main()
             break;
         }
     }
+    
+
+
+}
+
+
+void handleNotifications()
+{
 
 }
