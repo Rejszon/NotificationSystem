@@ -89,9 +89,7 @@ int main()
     int shm_id = shmget(DISTRO_KEY, SHM_SIZE, 0666 | IPC_CREAT);
 
     struct shared_data *data = (struct shared_data *)shmat(shm_id, NULL, 0);
-    memset(data, 0, sizeof(struct shared_data));
-
-    //struct shared_data data = *data_ptr;
+    memset(data, -1, sizeof(struct shared_data));
 
     int sid = msgget(DISTRO_KEY, 0666 | IPC_CREAT);
 
@@ -101,7 +99,7 @@ int main()
         struct notification notification;
         while (1)
         {
-           msgrcv(nid,&notification,sizeof(struct notification) - sizeof(long),0,0);
+            msgrcv(nid,&notification,sizeof(struct notification) - sizeof(long),100,0);
             if (data->providers[getProviderByKey(notification.provider_key, data)].type == notification.mtype)
             {
                 for (int i = 0; i < 10; i++)
@@ -119,7 +117,6 @@ int main()
 
     struct notification_types_msg types_msg;
     types_msg.mtype = 11;
-
     while (1)
     {
         msgrcv(sid,&sign, sizeof(struct sign_msg) - sizeof(long), 0,0);
@@ -146,11 +143,11 @@ int main()
                     }
                     
                 }
-                if (data->providers[i].id == 0)
+                if (data->providers[i].id == -1)
                 {
-                    data->providers[i].id = sign.id;
                     if (isTypeFree(sign.notification_type,data))
                     {
+                        data->providers[i].id = sign.id;
                         data->providers[i].type = sign.notification_type;
                         break;
                     }
@@ -172,12 +169,10 @@ int main()
                 {
                     break;
                 }
-                if (data->clients[i].id == 0)
+                if (data->clients[i].id == -1)
                 {
-                    char temp[10];
-                    sprintf(temp, "%d", data->providers[i].type);
-                    strcat(types_msg.types, temp);
-                    strcat(types_msg.types, "\n");
+                    data->clients[i].id = sign.id;
+                    data->clients[i].queue = msgget(sign.id, 0666 | IPC_CREAT);
                     break;
                 }
                 
