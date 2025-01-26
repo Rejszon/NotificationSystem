@@ -104,11 +104,9 @@ int main()
            {
                 if (data.clients[i].notification_types[notification.mtype] == 1)
                 {
-                    
+                    msgsnd(data.clients[i].queue,&notification,sizeof(notification) - sizeof(long),0);
                 }
-                
            }
-           
         }
     }
     struct sign_msg sign;
