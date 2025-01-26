@@ -9,8 +9,14 @@
 #include <stdbool.h>
 
 const DISTRO_KEY = 0x123;
-const NOTIFICATION_KEY= 0x420;
 const SHM_SIZE = 10000;
+const MAX_CLIENTS = 10;
+const MAX_PROVIDERS = 10;
+const MAX_NOTIFICATIONS = 10;
+const NOTIFICATION_KEY= 0x420;
+
+
+
 /// IPC msgs
 
 struct sign_msg{
@@ -37,24 +43,22 @@ struct provider{
 
 struct client{
     int id;
-    int notification_types[10];
+    int notification_types[MAX_NOTIFICATIONS];
     int queue;
 };
 
 struct shared_data {
-    struct provider providers[10];
-    struct client clients[10];
+    struct provider providers[MAX_PROVIDERS];
+    struct client clients[MAX_CLIENTS];
 };
 
 
-void handleNotifications();
-
-struct provider providers[10];
-struct client clients[10];
+struct provider *providers[MAX_PROVIDERS];
+struct client *clients[MAX_CLIENTS];
 
 bool isTypeFree(type)
 {
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < MAX_PROVIDERS; i++)
     {
         if (providers[i].type == type)
         {
@@ -65,13 +69,14 @@ bool isTypeFree(type)
 }
 int getClientById(id)
 {
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < MAX_CLIENTS; i++)
     {
         clients[i].id == id;
         return id;
     }
     return -1;
 }
+
 int getProviderByKey(id)
 {
     for (int i = 0; i < 10; i++)
@@ -81,6 +86,7 @@ int getProviderByKey(id)
     }
     return -1;
 }
+
 
 int main()
 {
@@ -110,7 +116,7 @@ int main()
         }
     }
     struct sign_msg sign;
-    
+
     struct notification_types_msg types_msg;
     types_msg.mtype = 11;
 
@@ -120,7 +126,7 @@ int main()
         switch (sign.mtype)
         {
         case 100:
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < MAX_PROVIDERS; i++)
             {
                 if (data.providers[i].id == sign.id)
                 {
@@ -160,7 +166,7 @@ int main()
             break;
 
         case 101:
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < MAX_CLIENTS; i++)
             {
                 if (data.clients[i].id == sign.id)
                 {
@@ -180,8 +186,8 @@ int main()
             strcpy(types_msg.types, "");
             for (int i = 0; i < 10; i++)
             {
-                if (data.providers[i].type != 0)
-                {
+                if (data.providers[i].type != 0) // Odczyt z pamięci współdzielonej
+                { 
                     strcat(types_msg.types,data.providers[i].type);
                     strcat(types_msg.types,"\n");
                 }
@@ -201,5 +207,7 @@ int main()
             break;
         }
     }
+    
+
 
 }
