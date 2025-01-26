@@ -20,6 +20,7 @@ struct msgNotification {
 };
 
 const DISTRO_KEY = 0x123;
+const NOTIFICATION_KEY= 0x420;
 
 int main(int argc, char *argv[])
 {
@@ -44,6 +45,7 @@ int main(int argc, char *argv[])
     struct msgNotification msg;
     msg.mtype = notification_type;
     msg.key = provider_key;
+    int nid = msgget(DISTRO_KEY, 0666 | IPC_CREAT);
     while (1)
     {
         printf("Podaj treść powiadomienia\n");
@@ -51,7 +53,7 @@ int main(int argc, char *argv[])
             printf("Blad odczytu. Sprobuj ponownie.\n");
             continue;
         }
-        msgsnd(id,&msg, sizeof(struct msgNotification) - sizeof(long),0); // TODO obsługa błędów
+        msgsnd(nid,&msg, sizeof(struct msgNotification) - sizeof(long),0); // TODO obsługa błędów
         printf("Powiadomienie wysłane\n"); 
     }
     return 0;
