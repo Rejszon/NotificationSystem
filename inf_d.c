@@ -13,6 +13,7 @@ const SHM_SIZE = 10000;
 const MAX_CLIENTS = 10;
 const MAX_PROVIDERS = 10;
 const MAX_NOTIFICATIONS = 10;
+const NOTIFICATION_KEY= 0x420;
 
 
 
@@ -25,7 +26,7 @@ struct sign_msg{
 };
 struct notification{
     long mtype;
-    int key;
+    int provider_key;
     char content[200];
 };
 
@@ -46,13 +47,11 @@ struct client{
     int queue;
 };
 
-struct shm_data {
+struct shared_data {
     struct provider providers[MAX_PROVIDERS];
     struct client clients[MAX_CLIENTS];
 };
 
-
-void handleNotifications();
 
 struct provider *providers[MAX_PROVIDERS];
 struct client *clients[MAX_CLIENTS];
@@ -72,11 +71,22 @@ int getClientById(id)
 {
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
+        clients[i].id == id;
+        return id;
+    }
+    return -1;
+}
+
+int getProviderByKey(id)
+{
+    for (int i = 0; i < 10; i++)
+    {
         providers[i].id == id;
         return id;
     }
     return -1;
 }
+
 
 int main()
 {
@@ -91,9 +101,24 @@ int main()
 
     if(fork() == 0)
     {
-        handleNotifications();
+        int nid = msgget(NOTIFICATION_KEY, 0666 | IPC_CREAT);
+        struct notification notification;
+        msgrcv(nid,&notification,sizeof(struct notification) - sizeof(long),0,0);
+        if (data.providers[getProviderByKey(notification.provider_key)].type == notification.mtype)
+        {
+           for (int i = 0; i < 10; i++)
+           {
+                if (data.clients[i].notification_types[notification.mtype] == 1)
+                {
+                    msgsnd(data.clients[i].queue,&notification,sizeof(notification) - sizeof(long),0);
+                }
+           }
+        }
     }
     struct sign_msg sign;
+
+    struct notification_types_msg types_msg;
+    types_msg.mtype = 11;
 
     while (1)
     {
@@ -109,7 +134,7 @@ int main()
                     {
                         continue;
                     }
-                    if (isTypeFree(data.provider, sign.notification_type)) // Jeżeli jeden proces jest już zalogowany to nie obsłużymy tylko dostanie 2 procesy ale no
+                    if (isTypeFree(data.providers, sign.notification_type)) // Jeżeli jeden proces jest już zalogowany to nie obsłużymy tylko dostanie 2 procesy ale no
                     {
                         data.providers[i].type = sign.notification_type;
                         continue;
@@ -161,12 +186,11 @@ int main()
             strcpy(types_msg.types, "");
             for (int i = 0; i < 10; i++)
             {
-                if (data.providers[i].type != 0) { // Odczyt z pamięci współdzielonej
-                char buffer[10];
-                sprintf(buffer, "%d", data.providers[i].type);
-                strcat(types_msg.types, buffer);
-                strcat(types_msg.types, "\n");
-        }
+                if (data.providers[i].type != 0) // Odczyt z pamięci współdzielonej
+                { 
+                    strcat(types_msg.types,data.providers[i].type);
+                    strcat(types_msg.types,"\n");
+                }
             }
             msgsnd(data.clients[getClientById(sign.id)].queue,&types_msg,sizeof(struct notification_types_msg) - sizeof(long),IPC_NOWAIT);
             break;
@@ -185,11 +209,5 @@ int main()
     }
     
 
-
-}
-
-
-void handleNotifications()
-{
 
 }
