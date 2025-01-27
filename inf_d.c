@@ -118,8 +118,6 @@ int main()
         case 100:
             for (int i = 0; i < MAX_PROVIDERS; i++)
             {
-                printf("prov  %d\n",data->providers[i].id);
-                printf("sign  %d\n",sign.id);
                 if (data->providers[i].id == sign.id)
                 {
                     if (data->providers[i].type == sign.notification_type)
@@ -168,7 +166,6 @@ int main()
                 {
                     data->clients[i].id = sign.id;
                     data->clients[i].queue = msgget(sign.id, 0666 | IPC_CREAT);
-                    printf("%d\n",data->clients[i].queue);
                     break;
                 }
                 
@@ -181,14 +178,13 @@ int main()
             strcpy(sign.types, "");
             for (int i = 0; i < 10; i++)
             {
-                if (data->providers[i].type != -1) // Odczyt z pamięci współdzielonej
+                if (data->providers[i].type != -1)
                 {
                     snprintf(buff, sizeof(buff), "%d",data->providers[i].type);
                     strcat(sign.types,buff);
                     strcat(sign.types,"\n");
                 }
             }
-            strcat(sign.types,"     koniec\n");
             msgsnd(data->clients[getClientById(sign.id, data)].queue,&sign,sizeof(struct sign_msg) - sizeof(long),0);
            
             break;
