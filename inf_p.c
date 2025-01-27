@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
     int id = msgget(DISTRO_KEY, 0666 | IPC_CREAT);
     
     //login
-    int log = msgsnd(id,&sign,sizeof(struct msgLogin) - sizeof(long),0);
+    msgsnd(id,&sign,sizeof(struct msgLogin) - sizeof(long),0);
 
     struct msgNotification msg;
     msg.mtype = notification_type;

@@ -31,7 +31,7 @@ void requestNotifications(int pid,int mid, int user_id)
     struct usr_msg req;
     req.mtype = 11;
     req.usr_id = user_id;
-    int a = msgsnd(pid, &req, sizeof(struct usr_msg) - sizeof(long), 0); //request typów
+    msgsnd(pid, &req, sizeof(struct usr_msg) - sizeof(long), 0); //request typów
     struct usr_msg res;
     msgrcv(mid,&res,sizeof(struct usr_msg) - sizeof(long),11,0);
     printf("Typy : \n%s",res.types);
@@ -63,12 +63,13 @@ int main(int argc, char *argv[])
     char input[5];
     struct notification_msg msg;
     struct usr_msg post;
-    int notification_type;
     while(1)
     {
         printf("Wybierz opcje:\n");
         printf("1 - dodaj nowy typ komunikatu\n");
         printf("2 - odbierz komunikat\n");
+        printf("3 - usuń typ komunikatu\n");
+
         // Read input from the user
         if (fgets(input, sizeof(input), stdin) == NULL) {
             printf("Blad odczytu. Sprobuj ponownie.\n");
@@ -96,7 +97,6 @@ int main(int argc, char *argv[])
 
             case 2:
                 printf("Odbieranie komunikatu...\n");
-                printf("mid : %d",mid);
 
                 if (msgrcv(mid, &msg, sizeof(struct notification_msg) - sizeof(long), 0, IPC_NOWAIT) == -1) // -9 bo chcemy wszystkie powiadomienia od 1-9 to są nasze wiadomości a filtracja typów jest po stornie dystrybutora
                 {
