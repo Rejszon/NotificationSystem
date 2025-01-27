@@ -9,34 +9,31 @@
 #include <stdlib.h>
 
 
-const int DISTRO_KEY = 0x123;
+const int DISTRO_KEY = 0x12345678;
 
 struct usr_msg
 {
     long mtype; // w zależności od typu dodajemy lub usuwamy subskrypcje kontretnego powiadomienia
     int usr_id;
     int notification_type;
+    char types[100];
 };
 
 struct notification_msg // Powiadomienie
 {
     long mtype;
-    char content[100];
+    int provider_key;
+    char content[200];
 };
 
-struct notification_types_msg // Typy do wyboru
+void requestNotifications(int pid,int mid, int user_id)
 {
-    long mtype;
-    char types[100];
-};
-
-void requestNotifications(int pid,int mid)
-{
-    struct notification_types_msg req;
+    struct usr_msg req;
     req.mtype = 11;
-    msgsnd(pid, &req, sizeof(struct notification_types_msg) - sizeof(long), 0); //request typów
-    struct notification_types_msg res;
-    msgrcv(mid,&res,sizeof(struct notification_types_msg) - sizeof(long),11,0);
+    req.usr_id = user_id;
+    int a = msgsnd(pid, &req, sizeof(struct usr_msg) - sizeof(long), 0); //request typów
+    struct usr_msg res;
+    msgrcv(mid,&res,sizeof(struct usr_msg) - sizeof(long),11,0);
     printf("Typy : \n%s",res.types);
     return;
 }
@@ -82,7 +79,7 @@ int main(int argc, char *argv[])
         switch (choice) {
             case 1:
                 printf("Dodawanie nowego typu komunikatu...\n");
-                requestNotifications(pid, mid);
+                requestNotifications(pid, mid, user_id);
 
                 printf("Podaj numer komunikatu który chcesz dodać\n");
                 if (fgets(input, sizeof(input), stdin) == NULL) {
@@ -99,7 +96,9 @@ int main(int argc, char *argv[])
 
             case 2:
                 printf("Odbieranie komunikatu...\n");
-                if (msgrcv(mid, &msg, sizeof(struct notification_msg) - sizeof(long), -10, IPC_NOWAIT) == -1) // -9 bo chcemy wszystkie powiadomienia od 1-9 to są nasze wiadomości a filtracja typów jest po stornie dystrybutora
+                printf("mid : %d",mid);
+
+                if (msgrcv(mid, &msg, sizeof(struct notification_msg) - sizeof(long), 0, IPC_NOWAIT) == -1) // -9 bo chcemy wszystkie powiadomienia od 1-9 to są nasze wiadomości a filtracja typów jest po stornie dystrybutora
                 {
                     printf("Brak nowych komunikatow.\n");
                     break;

@@ -13,15 +13,16 @@ struct msgLogin {
     long mtype;
     int prov_id;
     int notification_type;
+    char types[100];
 };
 
 struct msgNotification {
     long mtype;
-    int key;
+    int provider_key;
     char content[200];
 };
 
-const int DISTRO_KEY = 0x123;
+const int DISTRO_KEY = 0x12345678;
 const int NOTIFICATION_KEY= 0x420;
 
 int main(int argc, char *argv[])
@@ -42,11 +43,11 @@ int main(int argc, char *argv[])
     int id = msgget(DISTRO_KEY, 0666 | IPC_CREAT);
     
     //login
-    msgsnd(id,&sign,sizeof(struct msgLogin) - sizeof(long),0);
+    int log = msgsnd(id,&sign,sizeof(struct msgLogin) - sizeof(long),0);
 
     struct msgNotification msg;
     msg.mtype = notification_type;
-    msg.key = provider_key;
+    msg.provider_key = provider_key;
     int nid = msgget(NOTIFICATION_KEY, 0666 | IPC_CREAT);
     while (1)
     {
